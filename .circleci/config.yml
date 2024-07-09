@@ -22,7 +22,23 @@ jobs:
           name: Test with pytest
           command: pytest
 
+  deploy:
+    docker:
+      - image: cimg/base:2024.02
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build and push to Docker Hub
+          command: |
+            docker build -t gilangp/py-api-1:0.0.1
+            echo "dckr_pat_QfPimIAoqy9Jtu80BgzhTluf_oU" | docker login -u "gilangp" --password-stdin
+            docker push gilangp/py-api-1:0.0.1
+
 workflows:
   build-master:
     jobs:
       - build-and-test
+      - deploy:
+          requires:
+            - build-and-test
