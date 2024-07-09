@@ -1,0 +1,44 @@
+version: 2.1
+orbs:
+  python: circleci/python@2.1.1
+jobs:
+  build-and-test:
+    executor: python/default
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+      - run:
+          name: Install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r requirements.txt
+      - python/install-packages:
+          args: pytest
+          pkg-manager: pip
+          pypi-cache: false
+      - run:
+          name: Test with pytest
+          command: pytest
+
+  deploy:
+    docker:
+      - image: cimg/base:2024.02
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build and push to Docker Hub
+          command: |
+            docker build -t $DOCKER_HUB_USER_ID/$IMAGE_NAME:latest .
+            echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USER_ID" --password-stdin
+            docker push $DOCKER_HUB_USER_ID/$IMAGE_NAME:latest
+
+workflows:
+  build-master:
+    jobs:
+      - build-and-test
+      - deploy:
+          requires:
+            - build-and-test
